@@ -14,7 +14,8 @@ Esse balcão é o MCP Toolbox for Databases.
 ```bash
 docker compose up -d
 docker compose ps                       # postgres, toolbox e mock_api de pé
-curl http://localhost:5000/api/toolset  # deve listar as tools do tools.yaml
+curl http://localhost:5000/healthz      # toolbox de pé
+docker logs aurora-toolbox | grep Initialized   # confere tools e toolsets carregados
 psql postgresql://aurora:aurora@localhost:5432/aurora_fibra -c "select count(*) from clientes;"
 ```
 
@@ -33,7 +34,8 @@ Abra o `tools.yaml` e percorra as três seções:
 - `tools`: cada uma é nome, descrição, parâmetros tipados e uma query parametrizada.
   A `description` aqui faz o mesmo papel da docstring do lab 03,
   é o que o modelo lê para decidir
-- `toolsets`: fatias do cardápio. `atendimento_n1`, `cobranca` e `tecnico`
+- `toolsets`: fatias do cardápio. `atendimento_n1`, `cobranca`, `tecnico`
+  e `agendamento`. Repare que só os dois últimos contêm tool de escrita
 
 Pergunta para a turma: quantas linhas de Python existem neste arquivo? Zero.
 
@@ -46,7 +48,7 @@ root_agent = LlmAgent(..., tools=[toolset])
 
 Compare lado a lado com `lab03_tool_externa/tools.py`.
 Lá eram 60 linhas de Python para dois endpoints.
-Aqui são cinco tools de banco em duas linhas, com pool de conexão,
+Aqui são treze tools de banco em duas linhas, com pool de conexão,
 query parametrizada e observabilidade resolvidos pelo servidor.
 
 ### 3. A demo que vende o conceito (20 min)
@@ -100,13 +102,20 @@ Cardápio fechado é feature, não limitação.
 - **O protocolo nativo do Toolbox está depreciado, o padrão hoje é MCP.**
   Tutorial antigo que força `Protocol.TOOLBOX` vai confundir a turma.
 - **`toolset_name` errado devolve toolset vazio sem erro claro.**
-  O agente fica mudo sobre dados e parece "burro". Cheque `/api/toolset` primeiro.
+  O agente fica mudo sobre dados e parece "burro". Confira o nome com
+  `docker logs aurora-toolbox | grep groups` antes de culpar o modelo.
 - **Credencial em `${VAR}`, sempre.** Nunca deixe senha no `tools.yaml`,
   ele vai para o repositório.
 - **Tool de escrita precisa de confirmação.** `abrir_chamado` faz INSERT.
   A defesa aqui é a mesma do lab 03: `before_tool_callback`, não instruction.
 - **A `description` no YAML é prompt.** Descrição preguiçosa gera tool call errada,
   exatamente como docstring preguiçosa no lab 03.
+
+## Critério de aprovação
+
+Para "tenho fatura em aberto? CPF 444.555.666-77", ARI responde com as três
+competências vencidas vindas do Postgres, e não consegue abrir chamado,
+porque `abrir_chamado` não está no toolset `atendimento_n1`.
 
 ## A falha planejada
 

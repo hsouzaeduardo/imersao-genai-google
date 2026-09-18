@@ -25,7 +25,10 @@ Você roda o lab anterior, vê o agente quebrar na sua frente, e só então apre
 
 Cada lab tem seu próprio `README.md` com roteiro, gotchas e critério de aprovação.
 O arquivo [`DIFFS.md`](DIFFS.md) mostra, em uma tela, o que mudou de um lab para o outro.
-O arquivo [`docs/ROTEIRO_AULA.md`](docs/ROTEIRO_AULA.md) traz os tempos, as falas e as demos.
+O roteiro detalhado de cada lab fica no README da própria pasta.
+[`docs/LABS.md`](docs/LABS.md) é o índice, com o que cada lab exige no ar e os
+caminhos mais curtos. [`docs/ROTEIRO_AULA.md`](docs/ROTEIRO_AULA.md) traz os tempos,
+as falas e as demos que não podem falhar.
 
 ---
 
@@ -64,7 +67,7 @@ Confira:
 
 ```bash
 curl http://localhost:8000/health
-curl http://localhost:5000/api/toolset
+curl http://localhost:5000/healthz
 ```
 
 ### 4. Rodar um lab

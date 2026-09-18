@@ -1,7 +1,10 @@
 # Roteiro de condução
 
-Formato de referência: dois encontros de 4 horas.
-Versão compacta de 8 horas em um dia no fim do documento.
+Formato de referência: dois encontros de 4 horas, mais um encontro 3 opcional
+para o lab 07. Versão compacta de 8 horas em um dia no fim do documento.
+
+Cada lab tem o seu próprio roteiro detalhado no README da pasta. Este documento
+é o de condução: tempo, ordem, o que não pode falhar e o que dizer.
 
 ---
 
@@ -28,9 +31,24 @@ Versão compacta de 8 horas em um dia no fim do documento.
 | Lab 06 | 80 min | sequencial, paralelo, loop | o cronômetro do run_demo.py na tela |
 | Fechamento | 30 min | o que falta para produção | avaliação, observabilidade, custo, deploy |
 
+## Encontro 3, opcional: quando o agente não é seu
+
+Vale como módulo avulso de 2 horas. Só depende dos labs 01 e 05.
+
+| Bloco | Tempo | Conteúdo | Momento chave |
+|---|---|---|---|
+| Retomada | 10 min | por que `sub_agents` não resolve tudo | "e se o especialista for de outro time?" |
+| Lab 07 | 70 min | A2A, agent card, `RemoteA2aAgent` | trocar o servidor stub pelo real sem tocar no cliente |
+| Discussão | 30 min | protocolo versus biblioteca, quando integrar e quando unificar | "o A2A resolve organização, não tecnologia" |
+
+O lab 07 roda sem Azure: o `servidor_stub.py` publica o mesmo card e fala o mesmo
+protocolo, sem LLM nenhum. Use ele na aula e deixe o `servidor.py` para quem tiver
+credencial. Aliás, rodar o stub primeiro é melhor didática: a resposta é
+determinística, então quando algo falha a turma sabe que foi integração, não modelo.
+
 ---
 
-## As seis demos que não podem falhar
+## As sete demos que não podem falhar
 
 Se o tempo apertar, corte exercício, nunca estas seis.
 
@@ -46,6 +64,8 @@ Se o tempo apertar, corte exercício, nunca estas seis.
    Prova o desacoplamento entre time de dados e time de IA.
 6. **Lab 06**: `run_demo.py` com os dois tempos na tela.
    Prova que topologia é decisão de arquitetura com efeito medível.
+7. **Lab 07**: matar o servidor do outro time no meio da conversa.
+   Prova que sub-agente remoto é rede, e que rede cai.
 
 ---
 
@@ -63,6 +83,11 @@ Dá um formulário com as consultas que ele pode fazer. É exatamente isso que v
 o modelo não desobedeceu. Ele fez uma escolha razoável entre duas opções razoáveis.
 O problema não é o modelo, é você ter colocado uma regra de compliance
 num lugar que só aceita sugestão.
+
+**Na abertura do lab 07, antes de mostrar o RemoteA2aAgent:**
+até aqui, delegar custou um import. Isso porque todo mundo era ADK, no seu processo,
+no seu deploy. Agora o especialista tem outro dono, outro ciclo de release e uma
+política que ele não pode te mostrar. Nenhum import resolve problema de organograma.
 
 **No fechamento do lab 06:**
 a pergunta que vale para o resto da carreira de vocês não é "dá para fazer com agente?".
@@ -92,6 +117,16 @@ O agente vai repetir com convicção. Por isso o guardrail do lab 03 e o
 cardápio fechado do lab 04. Confiabilidade do agente é limitada pela
 confiabilidade da tool, sempre.
 
+**"A2A substitui o MCP?"**
+Não, resolvem coisas diferentes. MCP é o agente falando com ferramenta, que é o lab 04.
+A2A é agente falando com agente, que é o lab 07. No mesmo sistema você usa os dois:
+o agente de retenção do lab 07 provavelmente tem o próprio MCP do lado dele.
+
+**"Por que não expor o outro agente como uma tool e pronto?"**
+Dá para fazer, e às vezes é o certo. A diferença é que tool é uma chamada que volta,
+enquanto o A2A carrega conversa: contexto, tarefa longa, status. Se o outro lado
+precisa fazer perguntas de volta ao cliente, tool aperta.
+
 **"Como eu testo isso?"**
 Fora do escopo dos seis labs e é o assunto natural do próximo módulo:
 conjunto de avaliação, trace comparado, métrica por etapa.
@@ -111,9 +146,11 @@ Mesma sequência, com os cortes:
 
 ## Checklist do instrutor, véspera
 
-- [ ] `docker compose up -d` rodando e `curl localhost:5000/api/toolset` respondendo
+- [ ] `docker compose up -d` rodando e `curl localhost:5000/healthz` respondendo
 - [ ] `.env` com chave válida e cota conferida, aula com 30 alunos consome
 - [ ] `aurora_sessoes.db` apagado, para o lab 02a começar limpo
 - [ ] base restaurada, o lab 04 escreve chamado com `abrir_chamado`
 - [ ] plano B de rede: os labs 01, 02 e 06-loop rodam sem Docker, só com a chave do modelo
 - [ ] terminal com fonte grande e tema claro, o trace do `adk web` tem texto pequeno
+- [ ] se for dar o lab 07: `python lab07_a2a_interop/maf_retencao/servidor_stub.py`
+      numa janela separada e `curl localhost:9999/.well-known/agent-card.json` devolvendo 200

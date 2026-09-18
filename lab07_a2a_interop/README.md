@@ -1,15 +1,24 @@
 # Lab 07: o agente que não é seu
 
+**Tempo sugerido:** 70 minutos
+**Pré-requisitos:** labs 01 e 05 feitos, `pip install -r requirements.txt`.
+Azure é opcional: o `servidor_stub.py` roda o lab inteiro sem credencial.
+
+## A cena
+
+O cliente liga dizendo que vai cancelar. ARI já sabe rotear, já sabe consultar
+o banco, e mesmo assim não pode responder: quem decide desconto na Aurora é o
+time de CX, que não é da sua área, não usa o seu framework e não vai te
+entregar a tabela de descontos.
+
 ## A dor
 
 No lab 05 o ARI virou coordenador e ganhou três especialistas. Delegar custou um `import`:
 todos eram ADK, no mesmo processo, no mesmo deploy, do mesmo time.
 
-Agora o cliente diz que quer cancelar.
-
-Quem decide desconto na Aurora é o time de CX, e o agente deles roda em **Microsoft Agent
-Framework** sobre Azure. Você não vai reescrever o agente deles em ADK. Eles não vão migrar
-para o seu. E nenhum dos dois lados vai entregar a política comercial para o outro.
+O agente de retenção não é nada disso. Ele roda em **Microsoft Agent Framework** sobre
+Azure. Você não vai reescrever o agente deles em ADK, eles não vão migrar para o seu, e
+nenhum dos dois lados vai entregar a própria política para o outro.
 
 `sub_agents` só atravessa o seu próprio framework. É aqui que ele acaba.
 
@@ -112,6 +121,32 @@ do agente remoto, que o ADK nem enxerga.
 **4. Leia o card.** Abra o JSON e repare que `skills`, `description` e `capabilities` são
 tudo que o ADK sabe sobre o outro agente. Ele nunca viu a `POLITICA_RETENCAO`, que fica no
 servidor. Esse é o ponto: o protocolo carrega capacidade, não implementação.
+
+## Gotchas
+
+- **`RemoteA2aAgent` resolve o card no primeiro uso, não na importação.**
+  Um card inacessível não quebra `adk run`; quebra no turno em que o roteamento
+  escolhe o agente remoto. Isso confunde: o lab parece ter subido bem.
+- **Quem roteia é a `description` do lado ADK, não o card.** O ADK lê o card para
+  saber onde falar, mas a decisão de transferir sai da `description` que você
+  escreveu no `RemoteA2aAgent`. Card bom com `description` vaga não roteia.
+- **Versão do `a2a-sdk` importa mais do que parece.** A linha 1.x gera os tipos a
+  partir de protobuf: campos em snake_case, e helpers antigos como
+  `new_agent_text_message` não existem mais. Exemplo escrito para a 0.3 não roda.
+- **Em MAF 1.x não existe `AzureOpenAIChatClient`.** O caminho para Azure OpenAI é
+  o `FoundryChatClient`, do pacote `agent-framework-foundry`. Muito tutorial ainda
+  cita a classe que não existe.
+- **O agente remoto não vê o seu `state`.** Tudo que ele sabe é o que você mandou
+  na mensagem. Por isso a `instruction` do ARI manda reunir os três dados antes de
+  transferir: sem isso o outro lado responde pedindo o que falta, e você gasta
+  dois turnos de rede.
+
+## Critério de aprovação
+
+Com o servidor do outro time no ar, o ARI reúne tempo de casa, situação
+financeira e motivo antes de transferir, e a oferta que aparece ao cliente é a
+que veio pelo A2A, não uma inventada por ele. Com o servidor derrubado, ele diz
+que o time de retenção está indisponível em vez de improvisar um desconto.
 
 ## O que fica
 
