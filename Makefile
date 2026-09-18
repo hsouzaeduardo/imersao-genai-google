@@ -9,7 +9,7 @@ infra:
 	docker compose up -d
 	@sleep 3
 	@curl -s http://localhost:8000/health || echo "mock_api ainda subindo"
-	@curl -s http://localhost:5000/api/toolset >/dev/null && echo "toolbox ok" || echo "toolbox ainda subindo"
+	@curl -sf http://localhost:5000/healthz >/dev/null && echo "toolbox ok" || echo "toolbox ainda subindo"
 
 down:
 	docker compose down

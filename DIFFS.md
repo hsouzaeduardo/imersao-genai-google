@@ -26,7 +26,7 @@ E no runner:
 
 ```diff
 - session_service = InMemorySessionService()
-+ session_service = DatabaseSessionService(db_url="sqlite:///./aurora_sessoes.db")
++ session_service = DatabaseSessionService(db_url="sqlite+aiosqlite:///./aurora_sessoes.db")
 ```
 
 ## Lab 02a para 02b: o caderno vira prontuário

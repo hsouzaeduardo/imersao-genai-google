@@ -22,11 +22,11 @@ from google.adk.runners import InMemoryRunner
 from google.genai import types
 
 from lab06_orquestracao.pipeline_paralelo import (
-    checagem_financeira,
-    checagem_historico,
-    checagem_rede,
-    consolidador,
-    verificacoes,
+    criar_checagem_financeira,
+    criar_checagem_historico,
+    criar_checagem_rede,
+    criar_consolidador,
+    criar_verificacoes,
 )
 
 PERGUNTA = (
@@ -34,16 +34,23 @@ PERGUNTA = (
     "e eu já liguei antes sobre isso."
 )
 
+# Os dois arranjos usam agentes equivalentes, mas nunca as mesmas instâncias:
+# no ADK um agente pertence a um único pai, então cada montagem cria os seus.
 em_sequencia = SequentialAgent(
     name="abertura_sequencial",
     description="As mesmas três verificações, uma depois da outra.",
-    sub_agents=[checagem_financeira, checagem_rede, checagem_historico, consolidador],
+    sub_agents=[
+        criar_checagem_financeira(),
+        criar_checagem_rede(),
+        criar_checagem_historico(),
+        criar_consolidador(),
+    ],
 )
 
 em_paralelo = SequentialAgent(
     name="abertura_paralela",
     description="As três verificações ao mesmo tempo, depois consolidação.",
-    sub_agents=[verificacoes, consolidador],
+    sub_agents=[criar_verificacoes(), criar_consolidador()],
 )
 
 

@@ -1,5 +1,7 @@
-# Núcleo dos seis labs
-google-adk>=1.0.0
+# Núcleo dos seis labs.
+# O extra [db] traz sqlalchemy + aiosqlite, exigidos pelo
+# DatabaseSessionService do lab 02a.
+google-adk[db]>=1.0.0
 
 # Lab 03: API externa mockada
 fastapi>=0.115.0

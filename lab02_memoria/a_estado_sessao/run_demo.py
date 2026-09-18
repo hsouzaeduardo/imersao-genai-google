@@ -24,7 +24,9 @@ from lab02_memoria.a_estado_sessao.agent import root_agent
 APP = "aurora_lab02a"
 USER = "cliente_marcela"
 SESSAO = "atendimento_001"
-DB_URL = "sqlite:///./aurora_sessoes.db"
+# O DatabaseSessionService exige um driver assíncrono: sqlite+aiosqlite,
+# nunca o sqlite:// puro, que é síncrono e o ADK recusa.
+DB_URL = "sqlite+aiosqlite:///./aurora_sessoes.db"
 
 
 async def falar(runner: Runner, texto: str) -> None:
