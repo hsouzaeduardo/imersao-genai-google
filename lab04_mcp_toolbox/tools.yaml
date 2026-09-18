@@ -140,22 +140,261 @@ tools:
       WHERE c.cpf = $1
       RETURNING id, abertura, categoria, status;
 
+  buscar_cliente_por_telefone:
+    kind: postgres-sql
+    source: aurora-postgres
+    description: >
+      Busca o cadastro do cliente pelo telefone de contato. Use quando o
+      cliente ligar e não souber informar o CPF de cabeça. Retorna o CPF,
+      que é a chave de todas as outras consultas.
+    parameters:
+      - name: telefone
+        type: string
+        description: Telefone com DDD, com ou sem parênteses, hífen ou espaços.
+    statement: |
+      SELECT c.id,
+             c.cpf,
+             c.nome,
+             c.cidade,
+             c.uf,
+             c.cep,
+             ct.plano,
+             ct.status AS status_contrato
+      FROM clientes c
+      LEFT JOIN contratos ct ON ct.cliente_id = c.id
+      WHERE regexp_replace(c.telefone, '\D', '', 'g') = regexp_replace($1, '\D', '', 'g');
+
+  resumo_financeiro_cliente:
+    kind: postgres-sql
+    source: aurora-postgres
+    description: >
+      Devolve o consolidado financeiro do cliente já somado pelo banco:
+      quantas faturas estão abertas, quantas vencidas, o total devido e há
+      quantos dias está o atraso mais antigo. Prefira esta tool a somar as
+      faturas você mesmo, porque conta e soma feitas pelo modelo erram.
+    parameters:
+      - name: cpf
+        type: string
+        description: CPF do cliente, somente dígitos.
+    statement: |
+      SELECT ct.status AS status_contrato,
+             COUNT(*) FILTER (WHERE f.status = 'vencida')                   AS faturas_vencidas,
+             COUNT(*) FILTER (WHERE f.status = 'aberta')                    AS faturas_abertas,
+             COALESCE(SUM(f.valor) FILTER
+                      (WHERE f.status IN ('aberta', 'vencida')), 0)         AS total_em_aberto,
+             MIN(f.vencimento) FILTER (WHERE f.status = 'vencida')          AS vencimento_mais_antigo,
+             COALESCE(MAX(CURRENT_DATE - f.vencimento) FILTER
+                      (WHERE f.status = 'vencida'), 0)                      AS dias_de_atraso
+      FROM clientes c
+      JOIN contratos ct ON ct.cliente_id = c.id
+      LEFT JOIN faturas f ON f.contrato_id = ct.id
+      WHERE c.cpf = $1
+      GROUP BY ct.status;
+
+  consultar_fatura_por_competencia:
+    kind: postgres-sql
+    source: aurora-postgres
+    description: >
+      Detalha uma fatura específica pelo mês de competência, no formato
+      AAAA-MM. Use para segunda via ou quando o cliente contestar o valor
+      de um mês determinado.
+    parameters:
+      - name: cpf
+        type: string
+        description: CPF do cliente, somente dígitos.
+      - name: competencia
+        type: string
+        description: Mês de referência no formato AAAA-MM. Ex. "2026-08".
+    statement: |
+      SELECT f.competencia,
+             f.valor,
+             f.vencimento,
+             f.pagamento,
+             f.status,
+             ct.plano,
+             ct.mensalidade
+      FROM faturas f
+      JOIN contratos ct ON ct.id = f.contrato_id
+      JOIN clientes c ON c.id = ct.cliente_id
+      WHERE c.cpf = $1
+        AND f.competencia = $2;
+
+  consultar_chamado_por_id:
+    kind: postgres-sql
+    source: aurora-postgres
+    description: >
+      Detalha um chamado pelo número de protocolo, junto com a visita
+      técnica vinculada, se houver. Use quando o cliente citar o número do
+      protocolo. O CPF é obrigatório: ninguém consulta o chamado de outro.
+    parameters:
+      - name: cpf
+        type: string
+        description: CPF do cliente, somente dígitos.
+      - name: chamado_id
+        type: integer
+        description: Número do protocolo informado pelo cliente.
+    statement: |
+      SELECT ch.id,
+             ch.abertura,
+             ch.fechamento,
+             ch.categoria,
+             ch.descricao,
+             ch.status,
+             ch.tecnico,
+             a.data_visita,
+             a.turno,
+             a.status AS status_visita
+      FROM chamados ch
+      JOIN clientes c ON c.id = ch.cliente_id
+      LEFT JOIN agenda_tecnica a ON a.chamado_id = ch.id
+      WHERE c.cpf = $1
+        AND ch.id = $2;
+
+  listar_clientes_afetados_por_cep:
+    kind: postgres-sql
+    source: aurora-postgres
+    description: >
+      Lista os clientes com contrato ativo atendidos em um CEP. Use para
+      dimensionar um incidente de rede: se o painel aponta falha na região,
+      esta tool diz quais contratos estão sob aquele CEP. Não use para
+      atender um cliente individual.
+    parameters:
+      - name: cep
+        type: string
+        description: CEP da região, com ou sem hífen. Ex. "06010-100".
+    statement: |
+      SELECT c.nome,
+             c.cidade,
+             c.cep,
+             ct.plano,
+             ct.tecnologia,
+             ct.status AS status_contrato
+      FROM clientes c
+      JOIN contratos ct ON ct.cliente_id = c.id
+      WHERE replace(c.cep, '-', '') = replace($1, '-', '')
+        AND ct.status = 'ativo'
+      ORDER BY c.nome;
+
+  agendar_visita_tecnica:
+    kind: postgres-sql
+    source: aurora-postgres
+    description: >
+      Agenda uma visita técnica para um chamado existente. AÇÃO DE ESCRITA.
+      Só use depois de confirmar data e turno com o cliente, e depois de
+      checar em listar_faturas_em_aberto que o contrato não está suspenso.
+      O técnico não é escolhido aqui, quem distribui a agenda é a torre.
+    parameters:
+      - name: cpf
+        type: string
+        description: CPF do cliente, somente dígitos.
+      - name: chamado_id
+        type: integer
+        description: Protocolo do chamado que a visita vai atender.
+      - name: data_visita
+        type: string
+        description: Data da visita no formato AAAA-MM-DD.
+      - name: turno
+        type: string
+        description: manha ou tarde, exatamente assim, sem acento.
+    statement: |
+      INSERT INTO agenda_tecnica (chamado_id, data_visita, turno, tecnico, status)
+      SELECT ch.id, $3::date, $4, 'A definir', 'agendada'
+      FROM chamados ch
+      JOIN clientes c ON c.id = ch.cliente_id
+      WHERE c.cpf = $1
+        AND ch.id = $2
+      RETURNING id, chamado_id, data_visita, turno, tecnico, status;
+
+  cancelar_visita_tecnica:
+    kind: postgres-sql
+    source: aurora-postgres
+    description: >
+      Cancela uma visita que ainda está agendada. AÇÃO DE ESCRITA.
+      Só use com pedido explícito do cliente. Visita já realizada não volta
+      atrás, e nesse caso a tool não altera nada e não retorna linha.
+    parameters:
+      - name: cpf
+        type: string
+        description: CPF do cliente, somente dígitos.
+      - name: visita_id
+        type: integer
+        description: Identificador da visita, obtido em consultar_agenda_tecnica.
+    statement: |
+      UPDATE agenda_tecnica a
+      SET status = 'cancelada'
+      FROM chamados ch
+      JOIN clientes c ON c.id = ch.cliente_id
+      WHERE a.chamado_id = ch.id
+        AND a.id = $2
+        AND c.cpf = $1
+        AND a.status = 'agendada'
+      RETURNING a.id, a.data_visita, a.turno, a.status;
+
+  fechar_chamado:
+    kind: postgres-sql
+    source: aurora-postgres
+    description: >
+      Marca um chamado como resolvido e grava a data de fechamento.
+      AÇÃO DE ESCRITA. Só use depois de o cliente confirmar que o problema
+      acabou. Chamado já resolvido não é alterado de novo.
+    parameters:
+      - name: cpf
+        type: string
+        description: CPF do cliente, somente dígitos.
+      - name: chamado_id
+        type: integer
+        description: Protocolo do chamado a encerrar.
+    statement: |
+      UPDATE chamados ch
+      SET status = 'resolvido',
+          fechamento = NOW()
+      FROM clientes c
+      WHERE c.id = ch.cliente_id
+        AND ch.id = $2
+        AND c.cpf = $1
+        AND ch.status <> 'resolvido'
+      RETURNING ch.id, ch.categoria, ch.status, ch.fechamento;
+
 toolsets:
 
-  # O que o atendimento N1 pode fazer. Note que abrir_chamado está de fora:
-  # no lab 05 ele vai para o agente técnico, e só para ele.
+  # O que o atendimento N1 pode fazer: tudo de leitura, nada que escreva.
+  # Note que abrir_chamado está de fora: no lab 05 ele vai para o agente
+  # técnico, e só para ele.
   atendimento_n1:
     - buscar_cliente_por_cpf
+    - buscar_cliente_por_telefone
     - listar_faturas_em_aberto
+    - resumo_financeiro_cliente
     - listar_chamados_recentes
+    - consultar_chamado_por_id
     - consultar_agenda_tecnica
 
+  # Cobrança enxerga dinheiro e mais nada. Não vê chamado nem agenda.
   cobranca:
     - buscar_cliente_por_cpf
+    - buscar_cliente_por_telefone
     - listar_faturas_em_aberto
+    - resumo_financeiro_cliente
+    - consultar_fatura_por_competencia
 
+  # O técnico abre e encerra chamado, e é o único que dimensiona
+  # um incidente por CEP. Não mexe na agenda: isso é do agendamento.
   tecnico:
     - buscar_cliente_por_cpf
+    - listar_faturas_em_aberto
     - listar_chamados_recentes
+    - consultar_chamado_por_id
     - consultar_agenda_tecnica
+    - listar_clientes_afetados_por_cep
     - abrir_chamado
+    - fechar_chamado
+
+  # O agendamento marca e desmarca visita, e precisa enxergar fatura
+  # em aberto porque contrato suspenso não gera visita. Não abre chamado.
+  agendamento:
+    - buscar_cliente_por_cpf
+    - listar_faturas_em_aberto
+    - consultar_chamado_por_id
+    - consultar_agenda_tecnica
+    - agendar_visita_tecnica
+    - cancelar_visita_tecnica
