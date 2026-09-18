@@ -1,4 +1,4 @@
-.PHONY: setup infra down web lab1 lab2a lab2b lab3 lab4 lab5 lab6 check
+.PHONY: setup infra down web lab1 lab2a lab2b lab3 lab4 lab5 lab6 lab7 maf maf-azure check
 
 setup:
 	pip install -r requirements.txt
@@ -31,6 +31,14 @@ lab5:
 	adk run lab05_sub_agentes
 lab6:
 	python lab06_orquestracao/run_demo.py
+lab7:
+	adk run lab07_a2a_interop
+
+# O agente do outro time. Suba numa janela separada, antes do lab7.
+maf:
+	python lab07_a2a_interop/maf_retencao/servidor_stub.py
+maf-azure:
+	python lab07_a2a_interop/maf_retencao/servidor.py
 
 check:
 	python -c "import google.adk, sys; print('adk ok', google.adk.__version__ if hasattr(google.adk,'__version__') else '')"

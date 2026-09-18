@@ -11,5 +11,12 @@ httpx>=0.27.0
 # Lab 04: SDK do MCP Toolbox for Databases para ADK
 toolbox-adk>=0.1.0
 
+# Lab 07: A2A entre ADK e Microsoft Agent Framework.
+# O extra [a2a] do ADK e o MAF convergem no mesmo a2a-sdk 1.x,
+# que é o que torna a conversa possível.
+google-adk[a2a]>=1.0.0
+agent-framework-a2a>=1.0.0b0
+agent-framework-foundry>=1.0.0b0   # FoundryChatClient, o caminho Azure do MAF
+
 # Utilitários
 python-dotenv>=1.0.0

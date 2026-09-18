@@ -21,6 +21,7 @@ Você roda o lab anterior, vê o agente quebrar na sua frente, e só então apre
 | 4 | A chave do banco de dados | MCP Toolbox | `ToolboxToolset`, `tools.yaml` | acesso a dados sem governança |
 | 5 | Promovido a líder de equipe | Sub agentes | `sub_agents`, `AgentTool` | um prompt gigante fazendo tudo |
 | 6 | O processo operacional | Orquestração | `SequentialAgent`, `ParallelAgent`, `LoopAgent` | delegação probabilística onde o negócio exige previsibilidade |
+| 7 | O agente que não é seu | Interop A2A | `RemoteA2aAgent`, agent card | o especialista é de outro time, em outro framework |
 
 Cada lab tem seu próprio `README.md` com roteiro, gotchas e critério de aprovação.
 O arquivo [`DIFFS.md`](DIFFS.md) mostra, em uma tela, o que mudou de um lab para o outro.
@@ -175,6 +176,7 @@ Isso dá ao aluno prova objetiva de progresso, e ao instrutor seis momentos natu
 | 4 | "Tenho fatura em aberto?" | inventa ou pede para ligar | consulta o Postgres via Toolbox |
 | 5 | "Minha fatura venceu e o roteador está piscando vermelho" | mistura os dois fluxos | roteia para cobrança e depois para técnico |
 | 6 | mesmo caso do lab 5, dez vezes seguidas | ordem varia | ordem idêntica nas dez execuções |
+| 7 | "Quero cancelar, sou cliente há 7 anos" | promete desconto que não existe | consulta o agente MAF do time de retenção via A2A |
 
 ---
 
