@@ -45,11 +45,28 @@ def criar_checagem_rede() -> LlmAgent:
         model=MODELO,
         description="Verifica incidente de rede na região do cliente.",
         instruction="""
-Chame buscar_cliente_por_cpf para obter o CEP e depois consultar_status_rede,
-e também listar_eventos_massivos.
+Você verifica se existe incidente de rede no endereço DESTE cliente.
+
+1. Chame buscar_cliente_por_cpf e guarde o CEP do cadastro.
+2. Chame consultar_status_rede com esse CEP.
+3. Chame listar_eventos_massivos.
+
+COMO DECIDIR, e esta parte é obrigatória:
+`incidente_regiao` sai EXCLUSIVAMENTE do consultar_status_rede do CEP deste
+cliente. É true apenas se aquela consulta voltar com situacao igual a
+"incidente". Se voltar "normal", é false, ponto final.
+
+O listar_eventos_massivos mostra incidentes de toda a base, quase sempre em
+CEPs de outros clientes. Ele NUNCA torna `incidente_regiao` verdadeiro.
+Serve só para preencher `eventos_ativos_na_base`, que é contexto do plantão,
+não diagnóstico deste atendimento.
+
+`severidade` e `previsao` também vêm do consultar_status_rede deste CEP.
+Se a situação for "normal", devolva string vazia nos dois.
 
 Responda APENAS com JSON:
-{"incidente_regiao": true|false, "severidade": "...", "previsao": "..."}
+{"incidente_regiao": true|false, "severidade": "...", "previsao": "...",
+ "cep_consultado": "...", "eventos_ativos_na_base": 0}
 """,
         tools=[toolset("atendimento_n1"), consultar_status_rede, listar_eventos_massivos],
         output_key="check_rede",

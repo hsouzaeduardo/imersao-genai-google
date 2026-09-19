@@ -99,6 +99,15 @@ E agora você consegue apontar no código qual pedaço é qual.
 - **Workflow agent não é LLM.** `SequentialAgent`, `ParallelAgent` e `LoopAgent`
   não têm modelo nem instruction, eles só executam a topologia.
   Quem raciocina são os filhos.
+- **Ramo que recebe duas tools de escopos diferentes funde as duas.**
+  A `checagem_rede` chama `consultar_status_rede`, que é do CEP daquele cliente,
+  e `listar_eventos_massivos`, que é da base inteira. Pedir um único
+  `incidente_regiao` no fim fazia o modelo responder `true` para cliente sem
+  incidente nenhum, emprestando a severidade do incidente de outro CEP.
+  O ramo parecia funcionar: o JSON vinha bem formado e a conduta final não
+  mudava, porque o bloqueio financeiro tem precedência. Só aparece quando você
+  confere ramo por ramo contra o dado real. A correção foi dizer de qual tool
+  sai cada campo e dar chave própria ao contexto da base.
 
 ## Critério de aprovação
 
