@@ -51,6 +51,17 @@ O coordenador só enxerga nome e description dos filhos na hora de decidir.
 Peça ao agente de cobrança, já transferido, para abrir um chamado técnico.
 Ele não consegue, porque `abrir_chamado` não está no toolset `cobranca`.
 
+Repare que os três especialistas escrevem no banco, e cada um escreve outra coisa:
+
+| Especialista | Toolset | O que ele pode alterar |
+|---|---|---|
+| cobrança | `cobranca` | nada, é só leitura |
+| técnico | `tecnico` | abre e fecha chamado |
+| agendamento | `agendamento` | marca e desmarca visita |
+
+O de agendamento não abre chamado e o técnico não mexe na agenda. Nenhum dos
+dois é impedido por instruction: eles simplesmente não recebem a tool.
+
 Compare com a alternativa que quase todo mundo tenta primeiro:
 um agente com todas as tools e uma instruction dizendo "não use esta tool para aquilo".
 A primeira versão é arquitetura. A segunda é torcida.

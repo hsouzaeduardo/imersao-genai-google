@@ -99,14 +99,16 @@ tools:
     kind: postgres-sql
     source: aurora-postgres
     description: >
-      Mostra as visitas técnicas já agendadas para o cliente, com data,
-      turno e técnico. Use antes de oferecer novo agendamento.
+      Mostra as visitas técnicas já agendadas para o cliente, com id, data,
+      turno e técnico. Use antes de oferecer novo agendamento. O id que ela
+      retorna é o que cancelar_visita_tecnica pede.
     parameters:
       - name: cpf
         type: string
         description: CPF do cliente, somente dígitos.
     statement: |
-      SELECT a.data_visita,
+      SELECT a.id,
+             a.data_visita,
              a.turno,
              a.tecnico,
              a.status
